@@ -2,17 +2,12 @@ import dotenv from "dotenv";
 import http, { Server } from "http";
 
 // ================================
-// 1️⃣ Load ENV FIRST (CRITICAL)
+// 1️⃣ Load ENV (Render compatible)
 // ================================
-const nodeEnv = process.env.NODE_ENV || "development";
-const envFile = nodeEnv === "production" ? ".env.production" : ".env";
+dotenv.config();
 
-dotenv.config({
-  path: `${process.cwd()}/${envFile}`,
-});
-
-console.log(`🌱 Loaded env file: ${envFile}`);
-console.log(`PORT from env:`, process.env.PORT);
+console.log("🌱 ENV loaded");
+console.log("PORT:", process.env.PORT);
 
 // ================================
 // Globals
@@ -21,11 +16,11 @@ let server: Server | undefined;
 let isShuttingDown = false;
 
 // ================================
-// 2️⃣ Bootstrap AFTER env
+// 2️⃣ Bootstrap
 // ================================
 async function bootstrap(): Promise<void> {
   try {
-    // 🔑 IMPORTANT: dynamic imports
+    // Dynamic imports (ESM safe)
     const { env } = await import("./config/env.js");
     const { default: app } = await import("./app.js");
 
@@ -35,7 +30,7 @@ async function bootstrap(): Promise<void> {
 
     server.listen(PORT, () => {
       console.log(
-        `🚀 Server running in ${env.NODE_ENV} mode on port ${env.PORT}`
+        `🚀 Server running in ${env.NODE_ENV} mode on port ${PORT}`
       );
     });
   } catch (err) {
@@ -58,7 +53,7 @@ async function shutdown(reason: string): Promise<void> {
   const forceExitTimer = setTimeout(() => {
     console.error("⏱️ Force exit after timeout");
     process.exit(1);
-  }, 10_000);
+  }, 10000);
 
   try {
     if (server) {
@@ -70,9 +65,14 @@ async function shutdown(reason: string): Promise<void> {
       });
     }
 
-    const { prisma } = await import("./lib/prisma.js");
-    await prisma.$disconnect();
-    console.log("✅ Database disconnected");
+    // Prisma disconnect (safe)
+    try {
+      const { prisma } = await import("./lib/prisma.js");
+      await prisma.$disconnect();
+      console.log("✅ Database disconnected");
+    } catch (err) {
+      console.warn("⚠️ Prisma disconnect skipped");
+    }
   } catch (err) {
     console.error("❌ Error during shutdown", err);
   } finally {
