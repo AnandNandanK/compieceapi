@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  CUSTOMER
+  SUPER_ADMIN
+}
+
+enum EnquiryStatus {
+  PENDING
+  BOOKED
+  CLOSED
+  IN_PROGRESS
+}
+
+enum EnquiryType {
+  PACKAGE
+  HOTEL
+  UNKNOWN
+}
+
+/* ======================
+   USER
+====================== */
+
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  password      String
+  role          UserRole  @default(CUSTOMER)
+  googleId      String?   @unique
+  isActive      Boolean   @default(false)
+
+  otpHash       String?
+  otpExpiresAt  DateTime?
+  lastOtpSentAt DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  profile       Profile?
+
+  @@index([email])
+  @@index([googleId])
+}
+
+
+model Profile {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  fullname     String
+  phone        String?
+  address      String?
+  profileImage String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id])
+}
